@@ -1,0 +1,232 @@
+---
+title: "Silent Numbers: The Global Story of Child Mortality (Age 10 - 14)"
+author:
+  - Prashant Negi DCU Id - 14694
+format:
+  html:
+    theme: united
+    toc: true
+    toc-title: "Contents"
+    toc-depth: 2
+    page-layout: full
+    embed-resources: true
+    code-tools: true
+execute:
+  warning: false
+  message: false
+---
+
+The Tableau version of this report can be found in **[Click here](https://public.tableau.com/app/profile/prashant.negi6873/viz/BAA1030DataAnalyticsStoryTellingAssignmentbyPrashantNegi/Dashboard12)**
+
+# Introduction
+
+The report investigates mortality statistics for children between 10 and 14 years old which occur all over the world. It investigates how children's death rates change across regions and change in both historical and present times and between GDP measures. This analysis displays four visual representations which consist of a choropleth map and bar chart and line graph and scatterplot with regression for discovering critical trends.
+
+## Where are Childern most at Risk?
+
+![](img/globalmap.png){fig-align="center" width="85%"}
+
+**Key Insights:**
+
+- **Sub-Saharan Africa** emerges as the region with the *highest mortality rates*, with many countries falling into moderate to high-risk categories.
+- Regions like **North America**, **Western Europe**, **Australia**, and parts of **East Asia** exhibit *very low mortality rates*, a reflection of better healthcare, nutrition, and education systems.
+- **Gray areas** on the map represent missing data, especially in *Central Asia* and *conflict-affected zones* such as *Libya* and *Yemen*.
+- There is a **sharp contrast** between *high-income* and *low-income* regions, emphasizing how geography and economic status significantly influence child survival rates.
+
+## Have we made Progress?
+
+![](img/mortalitylinegraph.png){fig-align="center" width="85%"}
+
+**Key Insights:**
+
+- All six countries demonstrate *significant progress* in reducing child mortality over the 30-year period.
+- **Rwanda** exhibits a *sharp spike in 1994*, corresponding to the *Rwandan Genocide*, followed by a rapid decline post-recovery.
+- **Burundi** shows a smaller spike linked to its *civil unrest* in the early 1990s.
+- Despite some improvements, **Somalia** maintains a *persistently high mortality rate*, reflecting ongoing *instability* and *healthcare challenges*.
+- **Niger** and **Chad** follow a slow but steady downward trend, pointing to *gradual healthcare and infrastructure improvements*.
+- The pattern illustrates that **conflict, governance, and healthcare investments** are critical factors driving mortality outcomes.
+
+
+## Can Money Save Lives?
+
+![](img/mortalitybargraph.png){fig-align="center" width="85%"}
+
+**Key Insights:**
+
+- Mortality rates are *exceptionally low* in high-income countries, ranging from *0.1 to 0.7 deaths per 1,000 children* aged 10–14.
+- **The United States** records the highest mortality among these countries (0.7), surpassing nations like *Japan* (0.3), *Switzerland* (0.4), and *Sweden* (0.3).
+- **Luxembourg** stands out with the *lowest mortality rate* at 0.1, highlighting the impact of healthcare policies and social systems even within wealthy nations.
+- The general *uniformity of low mortality* underscores **public health successes** across these countries, though minor differences still reveal areas for improvement.
+
+
+## Socio-Economic Correlation: GDP and Mortality
+
+![](img/scatterplot.png){fig-align="center" width="85%"}
+
+
+**Key Insights:**
+
+- There is a **clear negative correlation** — as *GDP per capita increases*, *child mortality rates decrease*.
+- Among *very high-income countries*, the relationship *plateaus*, indicating that *beyond a certain wealth threshold*, further GDP gains have a *diminishing impact* on mortality.
+- In lower-income countries, the *spread is wider*: some achieve better outcomes than others despite similar GDP levels, highlighting that income alone does not guarantee better health.
+- The **overall downward trend** affirms the role of *economic development*, but the *variance among low-GDP countries* emphasizes that **governance, healthcare access, education, and stability** are equally vital.
+
+
+# Conclusion
+The combination of **economic success** and solid health care infrastructure and political constancy leads to the least death rates among children between ages 10 and 14. The world sees __declining__ mortality rates yet major disparities persist chiefly in **Sub-Saharan Africa** together with places tainted by conflict.
+Economic development clearly decreases mortality levels yet sustains these benefits only through combined implementation of peace as well as effective governance and accessible healthcare and social services.
+
+The urgent requirement involves targeted financial investments in combination with **international collaboration** and **development policies** that welcome everyone so that every child has both survival options and growth opportunities regardless of their geographical position.
+
+
+## Appendix: Full Code Snippets
+
+::: {.panel-tabset}
+### Full Python Code
+```{.python .code-fold}
+import pandas as pd
+import geopandas as gpd
+import pandas as pd
+import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
+from matplotlib.lines import Line2D
+import seaborn as sns
+import pycountry
+
+# Load datasets
+data1 = pd.read_csv('../data/unicef_indicator_1.csv')
+data2 = pd.read_csv('../data/unicef_indicator_2.csv')
+metadata = pd.read_csv('../data/unicef_metadata.csv') 
+
+# Load world shapefile
+world = gpd.read_file('../data/shapefiles/ne_110m_admin_0_countries/ne_110m_admin_0_countries.shp')
+
+# Look up countires
+def get_country_name(name):
+    try:
+        return pycountry.countries.lookup(name).name
+    except LookupError:
+        return name 
+
+data1['country_standardized'] = data1['country'].apply(get_country_name)
+
+# Merge datasets and find missing countires
+merged = world.merge(data1, how="left", left_on="NAME", right_on="country_standardized")
+missing = merged[merged['indicator'].isna()]
+print("Missing countries after merge:")
+print(missing['NAME'].tolist())
+
+# Choropleth Map
+bins = [0, 5, 15, 30, 50, 1000]
+labels = ['Very Low (0–5)', 'Low (5–15)', 'Moderate (15–30)', 'High (30–50)', 'Very High (50+)']
+
+merged['mortality_bin'] = pd.cut(merged['obs_value'], bins=bins, labels=labels)
+
+colors = ['#ffffb2', '#fecc5c', '#fd8d3c', '#f03b20', '#bd0026']  
+cmap = mcolors.ListedColormap(colors)
+
+bin_to_color = dict(zip(labels, range(len(labels))))
+merged['bin_idx'] = merged['mortality_bin'].map(bin_to_color)
+
+fig, ax = plt.subplots(1, 1, figsize=(20, 10))
+
+fig.patch.set_facecolor('#d9ebf5')
+ax.set_facecolor('#d9ebf5')
+
+merged.plot(
+    column='bin_idx',
+    cmap=cmap,
+    linewidth=0.5,
+    edgecolor='black',
+    ax=ax,
+    legend=False,
+    missing_kwds={"color": "lightgrey", "label": "Missing Data"})
+
+legend_elements = [Line2D([0], [0], marker='o', color='w', label=label,
+                          markerfacecolor=color, markersize=10) for label, color in zip(labels, colors)]
+ax.legend(handles=legend_elements, title="Mortality Rate", loc='lower left', fontsize=12, title_fontsize=14)
+
+ax.set_title('Global View of Mortality Rates (Age 10 - 14)', fontdict={'fontsize': 26, 'fontweight': 'bold'}, pad=20)
+ax.axis('off')
+
+plt.tight_layout()
+plt.show()
+
+# Line Chart
+data1['Year'] = pd.to_numeric(data1['Year'], errors='coerce')
+selected_countries_from_dashboard = ['Rwanda', 'Burundi', 'Angola', 'Niger', 'Chad', 'Somalia']
+data_selected = data1[data1['country'].isin(selected_countries_from_dashboard)]
+mortality_trend = data_selected.groupby(['Year', 'country'])['obs_value'].mean().reset_index()
+
+high_income_countries = [
+    'United States', 'Canada', 'Germany', 'France', 'United Kingdom',
+    'Japan', 'Australia', 'Switzerland', 'Sweden', 'Norway', 'Denmark',
+    'Netherlands', 'Austria', 'Finland', 'Ireland', 'Singapore', 'South Korea',
+    'Belgium', 'New Zealand', 'Italy', 'Spain', 'Luxembourg'
+]
+
+filtered_data = data1[data1['country'].isin(high_income_countries)]
+filtered_data = filtered_data.sort_values(['country', 'Year'], ascending=[True, False]).drop_duplicates('country')
+filtered_data = filtered_data.sort_values('obs_value', ascending=True)
+
+plt.figure(figsize=(14, 8))
+sns.lineplot(data=mortality_trend, x='Year', y='obs_value', hue='country', marker='o')
+
+plt.title('Mortality Trend Over Time', fontsize=20, fontweight='bold')
+plt.xlabel('Year', fontsize=14)
+plt.ylabel('Mortality Rate', fontsize=14)
+plt.grid(True, linestyle='--', alpha=0.7)
+plt.xticks(mortality_trend['Year'].unique(), rotation=45)
+plt.legend(title='Country', fontsize=12)
+plt.tight_layout()
+
+plt.show()
+
+# Bar Chart
+plt.figure(figsize=(10, 8))
+bars = plt.barh(filtered_data['country'], filtered_data['obs_value'], color=plt.cm.Paired.colors)
+
+plt.title('Mortality Rate in High-Income Countries', fontsize=18, weight='bold')
+plt.xlabel('Mortality Rate', fontsize=14)
+plt.ylabel('Country', fontsize=14)
+
+
+for bar in bars:
+    width = bar.get_width()
+    plt.text(width + 0.05,                      
+             bar.get_y() + bar.get_height()/2,
+             f'{width:.1f}',
+             va='center', ha='left', fontsize=10)
+
+plt.xlim(0, filtered_data['obs_value'].max() + 1)
+
+plt.tight_layout()
+plt.show()
+
+# Scatterplot with Regression Line
+merged_data = pd.merge(
+    data1, 
+    metadata, 
+    how='left', 
+    left_on='country', 
+    right_on='country'
+)
+
+def make_regression_plot(x_column, y_column='obs_value', dataset=merged_data, title=None):
+    plt.figure(figsize=(10, 6))
+    sns.regplot(
+        x=x_column,
+        y=y_column,
+        data=dataset.dropna(subset=[x_column, y_column]),
+        scatter_kws={'s': 50, 'alpha': 0.7},
+        line_kws={'color': 'red', 'linewidth': 2}
+    )
+    plt.title(title if title else f'{x_column} vs {y_column}', fontsize=18, weight='bold')
+    plt.xlabel(x_column, fontsize=14)
+    plt.ylabel(y_column, fontsize=14)
+    plt.grid(True, linestyle='--', alpha=0.6)
+    plt.tight_layout()
+    plt.show()
+
+make_regression_plot('GDP per capita (constant 2015 US$)', title='GDP vs Mortality Rate')
+```
